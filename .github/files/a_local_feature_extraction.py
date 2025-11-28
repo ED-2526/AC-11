@@ -72,7 +72,7 @@ def extract_dense_sift(image_path,  max_keypoints, step_size=10, patch_size=16):
     
     return descriptors
 
-def extract_features_from_dataset(data_dir, max_keypoints, method='dense', dim_descriptors = 64):
+def extract_features_from_dataset(data_dir, max_keypoints, dim_descriptors, method='dense'):
     methods = {
         'sift': extract_sift_features,
         'harris': extract_harris_sift,
@@ -115,15 +115,10 @@ def extract_features_from_dataset(data_dir, max_keypoints, method='dense', dim_d
     print(f"\nTotal de descriptores recolectados: {all_descriptors.shape[0]}")
     print(f"Dimensionalidad original: {all_descriptors.shape[1]}D")
     
-    print(f"\nEntrenando PCA con {dim_descriptors} componentes...")
     pca = PCA(n_components=dim_descriptors)
     pca.fit(all_descriptors)
     
     varianza_explicada = pca.explained_variance_ratio_.sum()
-    print(f"Varianza explicada: {varianza_explicada*100:.2f}%")
-    print(f"Con {dim_descriptors} componentes conservamos {varianza_explicada*100:.2f}% de la información original")
-    
-    print("\n=== FASE 3: Transformando descriptores a menor dimensionalidad ===")
     for food_name in result:
         print(f"\nTransformando: {food_name}")
         for img_path in result[food_name]:
@@ -141,6 +136,6 @@ def creation_of_descriptors(methods, flag = False, dim_descriptors = 64, max_key
     else:
         dir = os.path.join(os.path.dirname(__file__), '..', 'Food Classification')
         for method in methods:
-            result = extract_features_from_dataset(dir, max_keypoints,  method = method, dim_descriptors=64)
+            result = extract_features_from_dataset(dir, max_keypoints,  dim_descriptors, method = method)
             with open(os.path.join(os.path.dirname(__file__), f'features_{method}.pickle'), 'wb') as f:
                 pickle.dump(result, f)

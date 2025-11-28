@@ -6,11 +6,10 @@ from sklearn.metrics import accuracy_score, classification_report
 import numpy as np
 
 
-
-creation_of_descriptors(['sift', 'harris', 'mser', 'dense'], flag = False,
+creation_of_descriptors(['sift'], flag = False,
                         dim_descriptors=10, max_keypoints = 500)
 K = 10
-train_data, test_data, vocabulary  = vocabulary(flag_split = True, flag_kmeans = True, k= K)
+train_data, test_data, vocabulary  = vocabulary(flag_split = False, flag_kmeans = False, k= K)
 
 X_train, y_train = dataset_to_histograms(train_data, vocabulary, K)
 X_test, y_test = dataset_to_histograms(test_data, vocabulary, K)
