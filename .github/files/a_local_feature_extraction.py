@@ -135,7 +135,8 @@ def extract_features_from_dataset(data_dir, max_keypoints, method='dense', dim_d
 
 def creation_of_descriptors(methods, flag = False, dim_descriptors = 64, max_keypoints = 500):
     if flag == False:
-        print("No s'ha executat la extracció perquè ja hi ha un pickle")
+        print("No s'ha executat la extracció perquè no es vol" \
+        "sobreescriure lo queja hi ha un pickle")
         return
     else:
         dir = os.path.join(os.path.dirname(__file__), '..', 'Food Classification')
