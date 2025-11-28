@@ -52,7 +52,7 @@ def build_vocabulary(train_dict, K=100):
     print(f"Total descriptors: {all_descriptors_numpy.shape}")
     
     print(f"Entrenando K-Means con K={K}...")
-    kmeans = KMeans(n_clusters=K, random_state=42, n_init=10)
+    kmeans = KMeans(n_clusters=K, random_state=42, n_init=10, verbose= True)
     kmeans.fit(all_descriptors_numpy)
     with open(os.path.join(os.path.dirname(__file__), f'kmenans_{method}_{K}.pickle'), 'wb') as f:
         pickle.dump(k_means, f)
