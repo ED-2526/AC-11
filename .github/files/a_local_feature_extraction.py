@@ -72,26 +72,30 @@ def extract_dense_sift(image_path,  max_keypoints, step_size=10, patch_size=16):
     
     return descriptors
 
-def extract_features_from_dataset(data_dir, max_keypoints, dim_descriptors, method='dense'):
+def extract_features_from_dataset(data_dir, max_keypoints, dim_descriptors, num_classes, method):
     methods = {
         'sift': extract_sift_features,
         'harris': extract_harris_sift,
         'mser': extract_mser_sift,
         'dense': extract_dense_sift
     }
-    
+
     extract_fn = methods[method]
     result = {}
+
+    food_names = sorted(os.listdir(data_dir))
+    if num_classes is not None and num_classes > 0:
+        food_names = food_names[:num_classes]
+        print(f"Limitando a {num_classes} clases: {food_names}")
     
-    for food_name in sorted(os.listdir(data_dir)):
+    for food_name in food_names:
+        print(f"Tratando con {food_name}")
         class_path = os.path.join(data_dir, food_name)
         
         if not os.path.isdir(class_path):
             continue
         
-        result[food_name] = {}
-        print(f"\nProcesando: {food_name}")
-        
+        result[food_name] = {}    
         for img_name in os.listdir(class_path):
             if not img_name.endswith(('.jpg', '.png', '.jpeg')):
                 continue
@@ -101,34 +105,33 @@ def extract_features_from_dataset(data_dir, max_keypoints, dim_descriptors, meth
             
             if descriptors is not None and len(descriptors) > 0:
                 result[food_name][img_path] = descriptors
-                print(f"  {img_name}: {len(descriptors)} features")
-            else:
-                print(f"  {img_name}: NO features")
 
-    all_descriptors = []
-    for food_name in result:
-        for img_path in result[food_name]:
-            descriptors = result[food_name][img_path]
-            all_descriptors.append(descriptors)
-    
-    all_descriptors = np.vstack(all_descriptors)
-    print(f"\nTotal de descriptores recolectados: {all_descriptors.shape[0]}")
-    print(f"Dimensionalidad original: {all_descriptors.shape[1]}D")
-    
-    pca = PCA(n_components=dim_descriptors)
-    pca.fit(all_descriptors)
-    
-    varianza_explicada = pca.explained_variance_ratio_.sum()
-    for food_name in result:
-        print(f"\nTransformando: {food_name}")
-        for img_path in result[food_name]:
-            descriptors_original = result[food_name][img_path]
-            descriptors_reduced = pca.transform(descriptors_original)
-            result[food_name][img_path] = descriptors_reduced
+    if dim_descriptors == 0:
+        print("No apliquem PCA, dim_descriptors -> 0")
+    else:
+        all_descriptors = []
+        for food_name in result:
+            for img_path in result[food_name]:
+                descriptors = result[food_name][img_path]
+                all_descriptors.append(descriptors)
+        
+        all_descriptors = np.vstack(all_descriptors)
+        print(f"\nTotal de descriptors recolectados: {all_descriptors.shape[0]}")
+        print(f"Dimensionalidad original: {all_descriptors.shape[1]}D")
+        
+        pca = PCA(n_components=dim_descriptors)
+        pca.fit(all_descriptors)
+
+        for food_name in result:
+            print(f"\nTransformant: {food_name}")
+            for img_path in result[food_name]:
+                descriptors_original = result[food_name][img_path]
+                descriptors_reduced = pca.transform(descriptors_original)
+                result[food_name][img_path] = descriptors_reduced
     
     return result
 
-def creation_of_descriptors(methods, flag = False, dim_descriptors = 64, max_keypoints = 500):
+def creation_of_descriptors(methods = ['sift'], flag = False, dim_descriptors = 64, max_keypoints = 500, num_classes = None):
     if flag == False:
         print("No s'ha executat la extracció perquè no es vol" \
         "sobreescriure lo queja hi ha un pickle")
@@ -136,6 +139,6 @@ def creation_of_descriptors(methods, flag = False, dim_descriptors = 64, max_key
     else:
         dir = os.path.join(os.path.dirname(__file__), '..', 'Food Classification')
         for method in methods:
-            result = extract_features_from_dataset(dir, max_keypoints,  dim_descriptors, method = method)
-            with open(os.path.join(os.path.dirname(__file__), f'features_{method}.pickle'), 'wb') as f:
+            result = extract_features_from_dataset(dir, max_keypoints,  dim_descriptors, num_classes, method)
+            with open(os.path.join(os.path.dirname(__file__), f'features_{method}_dim{dim_descriptors}_maxkeypoints{max_keypoints}.pickle'), 'wb') as f:
                 pickle.dump(result, f)

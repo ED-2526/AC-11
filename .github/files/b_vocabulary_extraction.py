@@ -4,7 +4,7 @@ import pickle
 import os
 import numpy as np
 
-def split_train_test(flag, method, test_size=0.2, random_state=42):
+def split_train_test(flag, method, dim_descriptors, max_keypoints, test_size=0.2, random_state=42):
     if flag == False:
         print("Split ja fet, carregant desde pickle...")
         with open(os.path.join(os.path.dirname(__file__), f'train_data_{method}.pickle'), 'rb') as f:
@@ -12,7 +12,8 @@ def split_train_test(flag, method, test_size=0.2, random_state=42):
         with open(os.path.join(os.path.dirname(__file__), f'test_data_{method}.pickle'), 'rb') as f:
             test_dict = pickle.load(f)
     else:       
-        with open(os.path.join(os.path.dirname(__file__), f'features_{method}.pickle'), 'rb') as f:
+        with open(os.path.join(os.path.dirname(__file__),
+                               f'features_{method}_dim{dim_descriptors}_maxkeypoints{max_keypoints}.pickle'), 'rb') as f:
             features_dict = pickle.load(f)
 
         train_dict = {}
@@ -43,7 +44,7 @@ def split_train_test(flag, method, test_size=0.2, random_state=42):
 
 def build_vocabulary(train_dict, method, flag, K):
     if flag == False:
-        print("Carregant el kmenas des del pickle")
+        print("Carregant el kmeans des del pickle")
         with open(os.path.join(os.path.dirname(__file__), f'kmeans_{method}_{K}.pickle'), 'rb') as f:
             kmeans = pickle.load(f)
     else:
@@ -57,10 +58,10 @@ def build_vocabulary(train_dict, method, flag, K):
         print(f"Total descriptors: {all_descriptors_numpy.shape}")
         
         print(f"Entrenando K-Means con K={K}...")
-        kmeans = KMeans(n_clusters=K, random_state=42, n_init=10, verbose= True)
+        kmeans = KMeans(n_clusters=K, random_state=42, n_init=10, verbose= False)
         kmeans.fit(all_descriptors_numpy)
-        with open(os.path.join(os.path.dirname(__file__), f'kmeans_{method}_{K}.pickle'), 'wb') as f:
-            pickle.dump(kmeans, f)
+        #with open(os.path.join(os.path.dirname(__file__), f'kmeans_{method}_{K}.pickle'), 'wb') as f:
+        #   pickle.dump(kmeans, f)
 
         
         print(f"Vocabulario creado: {kmeans.cluster_centers_.shape}")
