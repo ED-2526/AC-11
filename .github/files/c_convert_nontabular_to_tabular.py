@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import json
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, 
                              f1_score, classification_report, confusion_matrix)
 
@@ -39,3 +41,31 @@ def calcular_estadisticas(y_true, y_pred):
     }
     
     return stats
+
+def guardar_estadisticas_json(K, estadisticas, filename='estadisticas.json'):
+    filepath = os.path.join(os.path.dirname(__file__), filename)
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+    else:
+        data = {}
+    k_str = str(K)
+    if k_str in data:
+        print(f"K={K} ya existe en {filename}, saltando...")
+        return False
+    
+    stats_serializable = {}
+    for key, value in estadisticas.items():
+        if isinstance(value, np.ndarray):
+            stats_serializable[key] = value.tolist()
+        elif isinstance(value, (np.integer, np.floating)):
+            stats_serializable[key] = float(value)
+        else:
+            stats_serializable[key] = value
+
+    data[k_str] = stats_serializable
+    
+    with open(filepath, 'w') as f:
+        json.dump(data, f, indent=2)
+    
+    return True

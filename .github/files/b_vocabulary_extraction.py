@@ -1,5 +1,5 @@
 from sklearn.model_selection import train_test_split
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MiniBatchKMeans
 import pickle
 import os
 import numpy as np
@@ -58,7 +58,14 @@ def build_vocabulary(train_dict, method, flag, K):
         print(f"Total descriptors: {all_descriptors_numpy.shape}")
         
         print(f"Entrenando K-Means con K={K}...")
-        kmeans = KMeans(n_clusters=K, random_state=42, n_init=10, verbose= False)
+        kmeans = MiniBatchKMeans(
+        n_clusters=K,
+        init='k-means++',
+        n_init=2,                    # Reducido de 10 - suficiente con k-means++
+        batch_size=10000,
+        max_iter=100,
+        random_state=42,
+        verbose = True )
         kmeans.fit(all_descriptors_numpy)
         #with open(os.path.join(os.path.dirname(__file__), f'kmeans_{method}_{K}.pickle'), 'wb') as f:
         #   pickle.dump(kmeans, f)
