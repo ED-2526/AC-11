@@ -19,17 +19,22 @@ creation_of_descriptors(methods, flag = False,
                         max_keypoints = max_keypoints, num_classes = num_clases)
 
 train_data, test_data = split_train_test(False, 'sift', dim_descriptors, max_keypoints)
-kas = np.arange(500, 10000, 500).astype('int')
-k = list(kas)
+k = [500, 1000, 3000, 3500, 4000, 4500, 5000]  # Solo los que tienen pickle
 for K in k:
-    filepath = os.path.join(os.path.dirname(__file__), 'estadisticas_kernel.json')
+    # Verificar si el pickle existe
+    pickle_path = os.path.join(os.path.dirname(__file__), f'kmeans_sift_{K}.pickle')
+    if not os.path.exists(pickle_path):
+        print(f"K={K} no tiene pickle, saltant...")
+        continue
+    
+    filepath = os.path.join(os.path.dirname(__file__), 'estadisticas_k2.json')
     if os.path.exists(filepath):
         with open(filepath, 'r') as f:
             data = json.load(f)
             if str(K) in data:
                 print(f"K={K} ya procesada, saltant...")
                 continue
-    vocabulary  = build_vocabulary(train_data, methods[0], True, K)
+    vocabulary  = build_vocabulary(train_data, methods[0], False, K)
     X_train, y_train = dataset_to_histograms(train_data, vocabulary, K)
     X_test, y_test = dataset_to_histograms(test_data, vocabulary, K)
     clf = svm.SVC(kernel='sigmoid')
