@@ -25,15 +25,9 @@ def dataset_to_histograms(data_dict, kmeans, K):
 def calcular_estadisticas(y_true, y_pred):    
     stats = {
         'accuracy': accuracy_score(y_true, y_pred),
-        'precision_macro': precision_score(y_true, y_pred, average='macro', zero_division=0),
-        'precision_micro': precision_score(y_true, y_pred, average='micro', zero_division=0),
-        'precision_weighted': precision_score(y_true, y_pred, average='weighted', zero_division=0),
-        'recall_macro': recall_score(y_true, y_pred, average='macro', zero_division=0),
-        'recall_micro': recall_score(y_true, y_pred, average='micro', zero_division=0),
-        'recall_weighted': recall_score(y_true, y_pred, average='weighted', zero_division=0),
-        'f1_macro': f1_score(y_true, y_pred, average='macro', zero_division=0),
-        'f1_micro': f1_score(y_true, y_pred, average='micro', zero_division=0),
-        'f1_weighted': f1_score(y_true, y_pred, average='weighted', zero_division=0),
+        'precision': precision_score(y_true, y_pred, average='macro', zero_division=0),
+        'recall': recall_score(y_true, y_pred, average='macro', zero_division=0),
+        'f1': f1_score(y_true, y_pred, average='macro', zero_division=0),
         'confusion_matrix': confusion_matrix(y_true, y_pred),
         'num_muestras_test': len(y_true),
         'num_clases': len(np.unique(y_true)),
@@ -42,16 +36,21 @@ def calcular_estadisticas(y_true, y_pred):
     
     return stats
 
-def guardar_estadisticas_json(K, estadisticas, filename='estadisticas.json'):
+def guardar_estadisticas_json(method, K, estadisticas, filename='estadisticas_LinearSVC.json'):
     filepath = os.path.join(os.path.dirname(__file__), filename)
+    
     if os.path.exists(filepath):
         with open(filepath, 'r') as f:
             data = json.load(f)
     else:
         data = {}
+    
+    if method not in data:
+        data[method] = {}
+    
     k_str = str(K)
-    if k_str in data:
-        print(f"K={K} ya existe en {filename}, saltando...")
+    if k_str in data[method]:
+        print(f"{method} K={K} ya existe en {filename}, saltando...")
         return False
     
     stats_serializable = {}
@@ -62,10 +61,11 @@ def guardar_estadisticas_json(K, estadisticas, filename='estadisticas.json'):
             stats_serializable[key] = float(value)
         else:
             stats_serializable[key] = value
-
-    data[k_str] = stats_serializable
+    
+    data[method][k_str] = stats_serializable
     
     with open(filepath, 'w') as f:
         json.dump(data, f, indent=2)
     
+    print(f"Estadísticas para {method} K={K} guardadas en {filename}")
     return True
