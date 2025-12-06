@@ -172,14 +172,13 @@ def extract_dense_sift(image_path, max_keypoints, submethod='grey', step_size=10
             return None
 
 def extract_features_from_dataset(data_dir, max_keypoints, dim_descriptors, num_classes, method):
-    uppermethod, submethod = method.split(',')
     methods = {
         'sift': extract_sift_features,
         'harris': extract_harris_sift,
         'dense': extract_dense_sift
     }
 
-    extract_fn = methods[uppermethod]
+    extract_fn = methods[method]
     result = {}
 
     food_names = sorted(os.listdir(data_dir))
@@ -239,5 +238,5 @@ def creation_of_descriptors(methods = ['sift'], flag = False, dim_descriptors = 
         dir = os.path.join(os.path.dirname(__file__), '..', 'Food Classification')
         for method in methods:
             result = extract_features_from_dataset(dir, max_keypoints,  dim_descriptors, num_classes, method)
-            with open(os.path.join(os.path.dirname(__file__), f'features{method}_dim{dim_descriptors}_maxkeypoints{max_keypoints}.pickle'), 'wb') as f:
+            with open(os.path.join(os.path.dirname(__file__), f'features_{method}_dim{dim_descriptors}_maxkeypoints{max_keypoints}.pickle'), 'wb') as f:
                 pickle.dump(result, f)

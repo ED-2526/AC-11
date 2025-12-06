@@ -13,7 +13,7 @@ def split_train_test(flag, method, dim_descriptors, max_keypoints, test_size=0.2
             test_dict = pickle.load(f)
     else:       
         with open(os.path.join(os.path.dirname(__file__),
-                               f'features{method}_dim{dim_descriptors}_maxkeypoints{max_keypoints}.pickle'), 'rb') as f:
+                               f'features_{method}_dim{dim_descriptors}_maxkeypoints{max_keypoints}.pickle'), 'rb') as f:
             features_dict = pickle.load(f)
 
         train_dict = {}
@@ -45,7 +45,7 @@ def split_train_test(flag, method, dim_descriptors, max_keypoints, test_size=0.2
 def build_vocabulary(train_dict, method, flag, K):
     if flag == False:
         print("Carregant el kmeans des del pickle")
-        with open(os.path.join(os.path.dirname(__file__), f'kmeans{method}_{K}.pickle'), 'rb') as f:
+        with open(os.path.join(os.path.dirname(__file__), f'kmeans_{method}_{K}.pickle'), 'rb') as f:
             kmeans = pickle.load(f)
     else:
         all_descriptors = []
@@ -61,7 +61,7 @@ def build_vocabulary(train_dict, method, flag, K):
         kmeans = MiniBatchKMeans(
         n_clusters=K,
         init='k-means++',
-        n_init=2,                  
+        n_init=2,                    # Reducido de 10 - suficiente con k-means++
         batch_size=10000,
         max_iter=100,
         random_state=42,
