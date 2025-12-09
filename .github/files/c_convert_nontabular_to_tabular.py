@@ -67,5 +67,5 @@ def guardar_estadisticas_json(method, K, estadisticas, filename='estadisticas_Li
     with open(filepath, 'w') as f:
         json.dump(data, f, indent=2)
     
-    print(f"Estadísticas para {method} K={K} guardadas en {filename}")
+    print(f"Estadisticas para {method} K={K} guardadas en {filename}")
     return True
