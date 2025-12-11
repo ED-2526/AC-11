@@ -21,7 +21,7 @@ def visualitzar_progressio_scores(filepath, type, output_dir=None):
     
     plt.figure(figsize=(12, 7))
     
-    colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#a65628', '#f781bf']
+    colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#17becf', '#a65628', '#f781bf']
     estils = ['-', '-', '-', '--', '--', ':', ':', ':']
     marcadors = ['o', 's', '^', 'o', 's', 'o', 's', '^']
 
@@ -197,6 +197,7 @@ def generar_heatmap_millors_k(directori, output_path=None):
 
 def visualizar_metricas(json_path, metodo, K):
 
+    kernel = str((json_path.split('_')[-1].split('.')[0])).upper()
     with open(json_path, 'r') as f:
         data = json.load(f)
     
@@ -217,7 +218,7 @@ def visualizar_metricas(json_path, metodo, K):
     clases = [c for c in stats['metricas_por_clase'].keys() if c not in ['accuracy', 'macro avg', 'weighted avg']]
 
     fig, axes = plt.subplots(1, 2, figsize=(15, 6))
-    fig.suptitle(f'Anàlisi per {metodo} amb K={K}\nAccuracy: {stats["accuracy"]:.4f}, Precision: {stats["precision"]:.4f} \
+    fig.suptitle(f'Anàlisi per {metodo} amb K={K} i kernel {kernel}\nAccuracy: {stats["accuracy"]:.4f}, Precision: {stats["precision"]:.4f} \
                  Recall: {stats["recall"]:.4f}, F1-score: {stats["f1"]:.4f}', 
                  fontsize=14, fontweight='bold')
     
@@ -271,9 +272,9 @@ def visualizar_metricas(json_path, metodo, K):
     
     return output_path
 
-def analitzar_roc(X_train, y_train, X_test, y_test, kernel='rbf', K=None, method=None):
+def analitzar_roc(X_train, y_train, X_test, y_test, kernel='rbf', K=None, method=None, c = 1):
 
-    clf = svm.SVC(kernel=kernel)
+    clf = svm.SVC(kernel=kernel, C=c)
     clf.fit(X_train, y_train)
 
     clases = sorted(list(set(y_train)))
@@ -282,21 +283,35 @@ def analitzar_roc(X_train, y_train, X_test, y_test, kernel='rbf', K=None, method
 
     plt.figure(figsize=(10, 8))
     colores = [
-    '#e41a1c',  # rojo
-    '#377eb8',  # azul
-    '#4daf4a',  # verde
-    '#984ea3',  # púrpura
-    '#ff7f00',  # naranja
-    '#ffff33',  # amarillo
-    '#a65628',  # marrón
-    '#f781bf',  # rosa
-    '#999999',  # gris
-    '#66c2a5',  # turquesa
-    '#8da0cb',  # azul claro
-    '#e78ac3',  # magenta
-    '#a6d854',  # lima
-    '#ffd92f',  # dorado
-]
+        '#e41a1c',  # Rojo
+        '#377eb8',  # Azul
+        '#4daf4a',  # Verde
+        '#984ea3',  # Púrpura
+        '#ff7f00',  # Naranja
+        '#17becf',  # Cyan
+        '#a65628',  # Marrón
+        '#f781bf',  # Rosa
+        '#999999',  # Gris
+        '#66c2a5',  # Turquesa
+        '#fc8d62',  # Coral
+        '#8da0cb',  # Azul lavanda
+        '#e78ac3',  # Magenta
+        '#a6d854',  # Lima
+        '#ffd92f',  # Dorado
+        '#e5c494',  # Beige
+        '#b3b3b3',  # Gris claro
+        '#1b9e77',  # Verde azulado
+        '#d95f02',  # Naranja oscuro
+        '#7570b3',  # Índigo
+        '#e31a1c',  # Rojo carmín
+        '#33a02c',  # Verde esmeralda
+        '#6a3d9a',  # Violeta oscuro
+        '#cab2d6',  # Lavanda
+        '#b15928',  # Terracota
+    ]
+
+    estils = ['-', '-', '-', '--', '--', ':', ':', '-.', '-', '--', ':', '-.', '-', '--', ':', '-.', '-', '--', ':', '-.', '-', '--', ':', '-.', '-']
+    marcadors = ['o', 's', '^', 'D', 'v', 'p', '*', 'h', 'X', '+', 'o', 's', '^', 'D', 'v', 'p', '*', 'h', 'X', '+', 'o', 's', '^', 'D', 'v']
     
     auc_valores = {}
     tpr_list = []
@@ -309,12 +324,20 @@ def analitzar_roc(X_train, y_train, X_test, y_test, kernel='rbf', K=None, method
 
         tpr_list.append(np.interp(fpr_comun, fpr, tpr))
 
-        plt.plot(fpr, tpr, color=colores[i], linewidth=2,
-                 label=f'{clase} (AUC = {auc_valor:.3f})')
+        plt.plot(fpr, tpr, 
+                        color=colores[i % len(colores)],
+                        linestyle=estils[i % len(estils)],
+                        marker=marcadors[i % len(marcadors)],
+                        markersize=4,
+                        markevery=10, 
+                        linewidth=2,
+                        label=f'{clase} (AUC = {auc_valor:.3f})')
 
     tpr_media = np.mean(tpr_list, axis=0)
     auc_media = auc(fpr_comun, tpr_media)
     auc_valores['media'] = auc_media
+
+
     
     plt.plot(fpr_comun, tpr_media, color='navy', linewidth=3, linestyle='--',
              label=f'Mitjana (AUC = {auc_media:.3f})')
@@ -352,6 +375,6 @@ def analitzar_roc(X_train, y_train, X_test, y_test, kernel='rbf', K=None, method
     return auc_valores
 
 if __name__ == '__main__':
-    visualitzar_tots_els_kernels(os.path.dirname(os.path.abspath(__file__)), 'full')
-    generar_heatmap_millors_k(os.path.dirname(os.path.abspath(__file__)))
-    #visualizar_metricas(os.path.join(os.path.dirname(__file__), 'estadisticas_sigmoide.json'), 'sift,splitted', '1500')
+    #visualitzar_tots_els_kernels(os.path.dirname(os.path.abspath(__file__)), 'full')
+    #generar_heatmap_millors_k(os.path.dirname(os.path.abspath(__file__)))
+    visualizar_metricas(os.path.join(os.path.dirname(__file__), 'estadisticas_sigmoide.json'), 'sift,splitted', '2000')

@@ -82,8 +82,8 @@ def build_vocabulary(train_dict, method, flag, K):
         random_state=42,
         verbose = True )
         kmeans.fit(all_descriptors_numpy)
-        #with open(os.path.join(os.path.dirname(__file__), f'kmeans_{method}_{K}.pickle'), 'wb') as f:
-           #pickle.dump(kmeans, f)
+        with open(os.path.join(os.path.dirname(__file__), f'kmeans_{method}_{K}.pickle'), 'wb') as f:
+           pickle.dump(kmeans, f)
 
         
         print(f"Vocabulario creado: {kmeans.cluster_centers_.shape}")

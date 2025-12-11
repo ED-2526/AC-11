@@ -226,49 +226,54 @@ def extract_features_from_dataset(data_dir, max_keypoints, dim_descriptors, num_
 
     extract_fn = methods[uppermethod]
     result = {}
-
-    if isinstance(num_classes, tuple):
-        food_names = list(num_classes)
-        print("Treballant només amb les seguents classes:", num_classes)
-
-    if isinstance(num_classes, int):
-        food_names = sorted(os.listdir(data_dir))
-        if num_classes is not None and num_classes > 0:
-            food_names = food_names[:num_classes]
-            print(f"Limitando a {num_classes} clases: {food_names}")
-        else:
-            print("Treballant sense limit d'etiqeutes per cada etiqueta")
-    
+    dir_checkeo = os.path.join(os.path.join(os.path.dirname(__file__),"featuressift,splitted_dim0_maxkeypoints0.pickle"))
+    if os.path.exists(dir_checkeo):
+        with open(dir_checkeo, 'rb') as f:
+            result = pickle.load(f)
     else:
-        food_names = sorted(os.listdir(data_dir))
 
-    
-    for food_name in food_names:
-        if images_for_class != 0:
-            counter = images_for_class
-            print("Extracció de només features de", counter, "imatges")
-        else:
-            counter = 1000
-            print("Treballant sense limit d'imatges")
-        print(f"Tratando con {food_name}")
-        class_path = os.path.join(data_dir, food_name)
-        
-        if not os.path.isdir(class_path):
-            continue
-        
-        result[food_name] = {}    
-        for img_name in os.listdir(class_path):
-            if not img_name.endswith(('.jpg', '.png', '.jpeg')):
-                continue
-            elif counter != 0:
-                img_path = os.path.join(class_path, img_name)
-                descriptors = extract_fn(img_path, max_keypoints, submethod)
-                counter-=1
-            
-                if descriptors is not None and len(descriptors) > 0:
-                    result[food_name][img_path] = descriptors
+        if isinstance(num_classes, tuple):
+            food_names = list(num_classes)
+            print("Treballant només amb les seguents classes:", num_classes)
+
+        if isinstance(num_classes, int):
+            food_names = sorted(os.listdir(data_dir))
+            if num_classes is not None and num_classes > 0:
+                food_names = food_names[:num_classes]
+                print(f"Limitando a {num_classes} clases: {food_names}")
             else:
-                break
+                print("Treballant sense limit d'etiqeutes per cada etiqueta")
+        
+        else:
+            food_names = sorted(os.listdir(data_dir))
+
+        
+        for food_name in food_names:
+            if images_for_class != 0:
+                counter = images_for_class
+                print("Extracció de només features de", counter, "imatges")
+            else:
+                counter = 1000
+                print("Treballant sense limit d'imatges")
+            print(f"Tratando con {food_name}")
+            class_path = os.path.join(data_dir, food_name)
+            
+            if not os.path.isdir(class_path):
+                continue
+            
+            result[food_name] = {}    
+            for img_name in os.listdir(class_path):
+                if not img_name.endswith(('.jpg', '.png', '.jpeg')):
+                    continue
+                elif counter != 0:
+                    img_path = os.path.join(class_path, img_name)
+                    descriptors = extract_fn(img_path, max_keypoints, submethod)
+                    counter-=1
+                
+                    if descriptors is not None and len(descriptors) > 0:
+                        result[food_name][img_path] = descriptors
+                else:
+                    break
 
     if dim_descriptors == 0:
         print("No apliquem PCA, dim_descriptors -> 0")
@@ -328,6 +333,7 @@ def resize(target_size):
         for image in images:
             img = cv2.imread(os.path.join(dir_etiqueta, image)) 
             img_resized = cv2.resize(img, target_size, interpolation=cv2.INTER_AREA)
+            print(dir_etiqueta)
             cv2.imwrite(os.path.join(dir_etiqueta_save, image), img_resized)
 
 if __name__ == '__main__':
