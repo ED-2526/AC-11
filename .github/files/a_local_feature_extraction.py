@@ -336,5 +336,39 @@ def resize(target_size):
             print(dir_etiqueta)
             cv2.imwrite(os.path.join(dir_etiqueta_save, image), img_resized)
 
+def group_classes(group, train_data, test_data):
+    if group is None:
+        return train_data, test_data
+    
+    # Encontrar clases que no están en ningún grupo
+    clases_agrupadas = set()
+    for g in group:
+        clases_agrupadas.update(g)
+    
+    todas_clases = set(train_data.keys())
+    clases_sueltas = todas_clases - clases_agrupadas
+    
+    train_agrupado = {}
+    test_agrupado = {}
+    
+    # Procesar grupos
+    for g in group:
+        nombre_grupo = "_".join(str(c) for c in g)
+        train_agrupado[nombre_grupo] = {}
+        test_agrupado[nombre_grupo] = {}
+        
+        for clase in g:
+            if clase in train_data:
+                train_agrupado[nombre_grupo].update(train_data[clase])
+            if clase in test_data:
+                test_agrupado[nombre_grupo].update(test_data[clase])
+    
+    # Añadir clases sueltas
+    for clase in clases_sueltas:
+        train_agrupado[clase] = train_data[clase]
+        test_agrupado[clase] = test_data[clase]
+    
+    return train_agrupado, test_agrupado
+
 if __name__ == '__main__':
     resize((300, 300))

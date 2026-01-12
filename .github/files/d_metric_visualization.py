@@ -6,10 +6,15 @@ import seaborn as sns
 from sklearn import svm
 from sklearn.metrics import roc_curve, auc
 from sklearn.preprocessing import label_binarize
+from sklearn.manifold import TSNE
+import random
+from sklearn.cluster import MiniBatchKMeans
+from scipy.spatial.distance import cdist
+import pickle
 
 def visualitzar_progressio_scores(filepath, type, output_dir=None):
     """
-    Genera una gràfica de l'evolució del F1-score segons K per a cada mètode.
+    Genera una gràfica de l'evolució del F1-score, Accuracy test i Accuracy train segons K per a cada mètode.
     
     Args:
         filepath: Ruta al fitxer JSON amb les estadístiques
@@ -19,38 +24,56 @@ def visualitzar_progressio_scores(filepath, type, output_dir=None):
     with open(filepath, 'r') as f:
         data = json.load(f)
     
-    plt.figure(figsize=(12, 7))
+    plt.figure(figsize=(14, 8))
     
-    colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#17becf', '#a65628', '#f781bf']
-    estils = ['-', '-', '-', '--', '--', ':', ':', ':']
-    marcadors = ['o', 's', '^', 'o', 's', 'o', 's', '^']
+    colors = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#a65628', '#f781bf']
 
     for idx, (metode, resultats_k) in enumerate(data.items()):
         valors_k = sorted([k for k in resultats_k.keys()])
-        f1_scores = [resultats_k[str(k)]['f1'] for k in valors_k]
         
-        # Dibuixar la línia per aquest mètode
+        f1_scores = [resultats_k[str(k)]['f1'] for k in valors_k]
+        accuracy_test = [resultats_k[str(k)]['accuracy'] for k in valors_k]
+        
+        # Verificar si existe accuracy_train
+        if 'accuracy_train' in resultats_k[str(valors_k[0])]:
+            accuracy_train = [resultats_k[str(k)]['accuracy_train'] for k in valors_k]
+        else:
+            print(f"⚠️  '{metode}' no té accuracy_train. Executa primer el training amb el codi modificat.")
+            accuracy_train = None
+        
+        color = colors[idx % len(colors)]
+        
+        # Línia 1: F1-score test (sòlida amb cercle)
         plt.plot(valors_k, f1_scores, 
-                 color=colors[idx % len(colors)],
-                 linestyle=estils[idx % len(estils)],
-                 marker=marcadors[idx % len(marcadors)],
-                 markersize=5,
-                 linewidth=2,
-                 label=metode)
+                 color=color, linestyle='-', marker='o', markersize=5, linewidth=2,
+                 label=f'{metode} - F1 (test)')
+        
+        # Línia 2: Accuracy test (discontínua amb quadrat)
+        plt.plot(valors_k, accuracy_test, 
+                 color=color, linestyle='--', marker='s', markersize=4, linewidth=1.5,
+                 label=f'{metode} - Accuracy (test)')
+        
+        # Línia 3: Accuracy train (puntejada amb triangle)
+        if accuracy_train:
+            plt.plot(valors_k, accuracy_train, 
+                     color=color, linestyle=':', marker='^', markersize=4, linewidth=1.5,
+                     label=f'{metode} - Accuracy (train)')
     
-    # Configurar títol i etiquetes en català
+    # Configurar títol i etiquetes
     nom_kernel = os.path.basename(filepath).replace('estadisticas_', '').replace('.json', '')
-    plt.title(f"Evolució del F1-Score segons K (Kernel: {nom_kernel})", fontsize=14, fontweight='bold')
+    plt.title(f"Evolució de mètriques segons K (Kernel: {nom_kernel})\n" + 
+              "Gap entre train (···) i test (---) = OVERFITTING", 
+              fontsize=13, fontweight='bold')
     plt.xlabel("Nombre de clusters (K)", fontsize=12)
-    plt.ylabel("F1-Score (macro)", fontsize=12)
+    plt.ylabel("Score", fontsize=12)
     
     # Afegir llegenda fora del gràfic per no tapar les línies
-    plt.legend(title="Mètodes", loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize=10)
+    plt.legend(title="Mètode - Mètrica", loc='center left', bbox_to_anchor=(1.02, 0.5), fontsize=9)
     
     # Afegir graella per facilitar la lectura
     plt.grid(True, linestyle='--', alpha=0.6)
     
-    # Ajustar els límits de l'eix Y entre 0 i 1 (F1-score sempre està en aquest rang)
+    # Ajustar els límits de l'eix Y entre 0 i 1
     plt.ylim(0, 1)
     
     # Ajustar el layout perquè la llegenda no quedi tallada
@@ -279,6 +302,7 @@ def analitzar_roc(X_train, y_train, X_test, y_test, kernel='rbf', K=None, method
 
     clases = sorted(list(set(y_train)))
     y_scores = clf.decision_function(X_test)
+    print(y_scores)
     y_test_bin = label_binarize(y_test, classes=clases)
 
     plt.figure(figsize=(10, 8))
@@ -374,7 +398,115 @@ def analitzar_roc(X_train, y_train, X_test, y_test, kernel='rbf', K=None, method
         
     return auc_valores
 
+def visualitzar_tsne(X,y):
+    X,y = filtrar_por_centroide(X,y)
+    X = np.array(X)
+    y = np.array(y)
+    
+    tsne = TSNE(n_components=2, perplexity=30, random_state=42, max_iter=1000)
+    X_2d = tsne.fit_transform(X)
+    
+    # Convertir etiquetas a números
+    etiquetas_unicas, y_numerico = np.unique(y, return_inverse=True)
+    
+    plt.figure(figsize=(12, 10))
+    scatter = plt.scatter(X_2d[:, 0], X_2d[:, 1], c=y_numerico, 
+                          cmap='tab20', alpha=0.6, s=30)
+    
+    plt.xlabel('Eix X')
+    plt.ylabel('Eix Y')
+    plt.title('Visualització t-SNE')
+    plt.colorbar(scatter)
+    plt.tight_layout()
+    plt.show()
+
+def filtrar_por_centroide(X, y, porcentaje=0.25):
+    X = np.array(X)
+    y = np.array(y)
+    
+    etiquetas_unicas = np.unique(y)  # ['pizza', 'pasta', 'sushi', ...]
+    
+    X_filtrado = []
+    y_filtrado = []
+    
+    for etiqueta in etiquetas_unicas:  # Para cada clase...
+        
+        # 1. Obtener solo los puntos de esta clase
+        indices = np.where(y == etiqueta)[0]  # Posiciones donde y == 'pizza'
+        X_clase = X[indices]  # Descriptores solo de 'pizza'
+        
+        # 2. Encontrar el centroide con KMeans (K=1 = un solo centro)
+        kmeans = MiniBatchKMeans(n_clusters=1, random_state=42)
+        kmeans.fit(X_clase)
+        centroide = kmeans.cluster_centers_[0]  # El punto "medio" de la clase
+        
+        # 3. Calcular distancia de cada punto al centroide
+        distancias = cdist(X_clase, [centroide], metric='euclidean').flatten()
+        # distancias = [0.5, 2.3, 0.8, 5.1, ...]  (una por punto)
+        
+        # 4. Quedarse con el 25% más cercano
+        n_seleccionar = max(1, int(len(X_clase) * porcentaje))  # Si hay 100, selecciona 25
+        indices_cercanos = np.argsort(distancias)[:n_seleccionar]  # Índices ordenados por distancia
+        
+        # 5. Guardar los puntos seleccionados
+        X_filtrado.append(X_clase[indices_cercanos])
+        y_filtrado.append(np.array([etiqueta] * n_seleccionar))
+    
+    # 6. Juntar todo en arrays finales
+    return np.vstack(X_filtrado), np.concatenate(y_filtrado)
+
+def generar_dendrograma_desde_json(json_path, method, k):
+    from scipy.cluster.hierarchy import dendrogram, linkage
+    from scipy.spatial.distance import squareform
+    
+    # Leer JSON
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+    
+    # Extraer nombres de clases desde metricas_por_clase
+    metricas = data[method][str(k)]['metricas_por_clase']
+    clases = [c for c in metricas.keys() if c not in ['accuracy', 'macro avg', 'weighted avg']]
+    clases = sorted(clases)
+    
+    # Extraer matriz de confusión
+    cm = np.array(data[method][str(k)]['confusion_matrix'])
+    
+    print(f"Clases: {len(clases)}")
+    print(f"Matriz: {cm.shape}")
+    
+    # Simetrizar la matriz
+    cm_sym = cm + cm.T
+    
+    # Normalizar
+    row_sums = cm_sym.sum(axis=1, keepdims=True)
+    cm_norm = cm_sym / (row_sums + 1e-10)
+    
+    # Convertir similitud a distancia
+    np.fill_diagonal(cm_norm, 0)
+    max_val = cm_norm.max()
+    dist_matrix = max_val - cm_norm
+    np.fill_diagonal(dist_matrix, 0)
+    dist_matrix = (dist_matrix + dist_matrix.T) / 2
+    
+    # Clustering jerárquico
+    condensed = squareform(dist_matrix)
+    Z = linkage(condensed, method='ward')
+    
+    # Mostrar dendrograma
+    plt.figure(figsize=(14, 6))
+    dendrogram(Z, labels=clases, leaf_rotation=45)
+    plt.xlabel('Clases')
+    plt.ylabel('Distancia')
+    plt.title(f'Dendrograma de similitud entre clases\n({method}, K={k})')
+    plt.tight_layout()
+    plt.savefig('dendrograma.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    return Z, clases
+
 if __name__ == '__main__':
+    #visualitzar_tsne()
     #visualitzar_tots_els_kernels(os.path.dirname(os.path.abspath(__file__)), 'full')
     #generar_heatmap_millors_k(os.path.dirname(os.path.abspath(__file__)))
     visualizar_metricas(os.path.join(os.path.dirname(__file__), 'estadisticas_sigmoide.json'), 'sift,splitted', '2000')
+    #generar_dendrograma_desde_json(os.path.join(os.path.dirname(__file__), 'estadisticas_sigmoide.json'),"sift,splitted","2000")
